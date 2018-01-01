@@ -78,7 +78,7 @@ def plot(predictions_series, batchX, batchY, n_units, batch_size):
     plt.show()
 
 if __name__ == "__main__":
-    ckpt = "checkpoints/model.ckpt"
+    ckpt = "checkpoints/model.ckpt-9"
     echo_step = 2
     series_length = 100
     state_size = 4

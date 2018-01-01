@@ -81,7 +81,7 @@ class Train:
                     if batch % 100 == 0:
                         print("Epoch", i, "Step", batch, "Loss", _loss)
                         plot(losses, _preds, x_batch, y_batch, self.n_units)
-            saver.save(sess, "checkpoints/model.ckpt")
+                saver.save(sess, "checkpoints/model.ckpt", global_step=i)
 
 def plot(loss_list, predictions_series, batchX, batchY, n_units):
     plt.subplot(2, 3, 1)
