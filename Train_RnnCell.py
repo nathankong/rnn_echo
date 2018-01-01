@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from Data import *
-from Util import *
+from Model_Rnn import *
 
 class Train:
     def __init__(self, data, series_length, num_epochs, batch_size, state_size, n_units, num_classes):
@@ -15,33 +15,11 @@ class Train:
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.state_size = state_size
-        self.n_units = n_units
+        self.n_units = n_units # number of timesteps
         self.num_classes = num_classes
         self.num_batches = series_length // batch_size // n_units
 
-        # To be set in loss_func() function
-        self.x_batch = None
-        self.y_batch = None
-        self.init_state = None
-        self.all_predictions = None
-
-    def loss_func(self):
-        self.x_batch = tf.placeholder(tf.float32, [self.batch_size, self.n_units])
-        self.y_batch = tf.placeholder(tf.int32, [self.batch_size, self.n_units])
-        self.init_state = tf.placeholder(tf.float32, [self.batch_size, self.state_size])
-
-        w_state = tf.get_variable("w_state", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size+1, self.state_size], dtype=tf.float32)
-        b_state = tf.get_variable("b_state", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size], dtype=tf.float32)
-        w_out = tf.get_variable("w_out", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size, self.num_classes], dtype=tf.float32)
-        b_out = tf.get_variable("b_out", initializer=tf.contrib.layers.xavier_initializer(), shape=[1, self.num_classes], dtype=tf.float32)
-
-        inputs = tf.unstack(self.x_batch, axis=1)
-        outputs = tf.unstack(self.y_batch, axis=1)
-
-        all_states = compute_states(inputs, w_state, b_state, self.batch_size, self.init_state)
-        all_logits = compute_logits(all_states, w_out, b_out)
-        self.all_predictions = [tf.nn.softmax(logits) for logits in all_logits]
-
+    def loss_func(self, all_logits, outputs):
         assert len(all_logits) == len(outputs)
         losses = list()
         for logits, labels in zip(all_logits, outputs):
@@ -51,14 +29,16 @@ class Train:
         return total_loss
 
     def train(self):
-        directory = "checkpoints/vanilla"
+        directory = "checkpoints/rnn_cell"
         try:
             os.makedirs(directory)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
 
-        total_loss = self.loss_func()
+        model = Model_Rnn(self.batch_size, self.n_units, self.state_size, self.num_classes)
+        logits, outputs = model.model_func()
+        total_loss = self.loss_func(logits, outputs)
         train_step = tf.train.AdagradOptimizer(0.3).minimize(total_loss)
         with tf.Session() as sess:
             sess.run(tf.initialize_all_variables())
@@ -79,17 +59,17 @@ class Train:
                     end_idx = start_idx + self.n_units
                     x_batch = inputs[:, start_idx:end_idx]
                     y_batch = outputs[:, start_idx:end_idx]
-                    _loss, _, _preds = sess.run([total_loss, train_step, self.all_predictions], \
-                                         feed_dict={self.x_batch:x_batch,
-                                                    self.y_batch:y_batch,
-                                                    self.init_state:curr_state})
+                    _loss, _, _preds = sess.run([total_loss, train_step, model.all_predictions], \
+                                         feed_dict={model.x_batch:x_batch,
+                                                    model.y_batch:y_batch,
+                                                    model.init_state:curr_state})
                     #print "Epoch", i, "; Batch", batch, "; Loss=", _loss
                     losses.append(_loss)
 
                     if batch % 100 == 0:
                         print("Epoch", i, "Step", batch, "Loss", _loss)
                         plot(losses, _preds, x_batch, y_batch, self.n_units)
-                saver.save(sess, "checkpoints/vanilla/model.ckpt", global_step=i)
+                saver.save(sess, "checkpoints/rnn_cell/model.ckpt", global_step=i)
 
 def plot(loss_list, predictions_series, batchX, batchY, n_units):
     plt.subplot(2, 3, 1)

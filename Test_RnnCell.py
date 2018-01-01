@@ -2,7 +2,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from Data import *
-from Util import *
+from Model_Rnn import *
 
 class Test:
     def __init__(self, ckpt, data, state_size, num_classes, batch_size, n_units, series_length):
@@ -13,36 +13,22 @@ class Test:
         self.batch_size = batch_size
         self.n_units = n_units
         self.num_batches = series_length // batch_size // n_units
-        self.model()
 
-    def model(self):
-        self.x_batch = tf.placeholder(tf.float32, [self.batch_size, self.n_units])
-        self.y_batch = tf.placeholder(tf.int32, [self.batch_size, self.n_units])
-        self.init_state = tf.placeholder(tf.float32, [self.batch_size, self.state_size])
-
-        w_state = tf.get_variable("w_state", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size+1, self.state_size], dtype=tf.float32)
-        b_state = tf.get_variable("b_state", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size], dtype=tf.float32)
-        w_out = tf.get_variable("w_out", initializer=tf.contrib.layers.xavier_initializer(), shape=[self.state_size, self.num_classes], dtype=tf.float32)
-        b_out = tf.get_variable("b_out", initializer=tf.contrib.layers.xavier_initializer(), shape=[1, self.num_classes], dtype=tf.float32)
-
-        inputs = tf.unstack(self.x_batch, axis=1)
-        outputs = tf.unstack(self.y_batch, axis=1)
-
-        all_states = compute_states(inputs, w_state, b_state, self.batch_size, self.init_state)
-        all_logits = compute_logits(all_states, w_out, b_out)
-
-        self.all_predictions = [tf.nn.softmax(logits) for logits in all_logits]
-
+    def loss_func(self, all_logits, outputs):
         assert len(all_logits) == len(outputs)
         losses = list()
         for logits, labels in zip(all_logits, outputs):
             curr_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
             losses.append(curr_loss)
-        self.total_loss = tf.reduce_mean(losses)
+        total_loss = tf.reduce_mean(losses)
+        return total_loss
 
     def test(self):
-        saver = tf.train.Saver()
+        model = Model_Rnn(self.batch_size, self.n_units, self.state_size, self.num_classes)
+        logits, outputs = model.model_func()
+        total_loss = self.loss_func(logits, outputs)
         with tf.Session() as sess:
+            saver = tf.train.Saver()
             saver.restore(sess, ckpt)
             data = self.data.get_data()
             inputs = data[0]
@@ -55,10 +41,10 @@ class Test:
                 end_idx = start_idx + self.n_units
                 x_batch = inputs[:, start_idx:end_idx]
                 y_batch = outputs[:, start_idx:end_idx]
-                _loss, _preds = sess.run([self.total_loss, self.all_predictions], \
-                                   feed_dict={self.x_batch:x_batch,
-                                              self.y_batch:y_batch,
-                                              self.init_state:curr_state})
+                _loss, _preds = sess.run([total_loss, model.all_predictions], \
+                                   feed_dict={model.x_batch:x_batch,
+                                              model.y_batch:y_batch,
+                                              model.init_state:curr_state})
                 plot(_preds, x_batch, y_batch, self.n_units, self.batch_size)
                 print "Batch: " + str(batch) + "; Loss: " + str(_loss)
 
@@ -78,7 +64,7 @@ def plot(predictions_series, batchX, batchY, n_units, batch_size):
     plt.show()
 
 if __name__ == "__main__":
-    ckpt = "checkpoints/vanilla/model.ckpt-4"
+    ckpt = "checkpoints/rnn_cell/model.ckpt-4"
     echo_step = 2
     series_length = 100
     state_size = 4
