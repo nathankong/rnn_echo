@@ -11,5 +11,5 @@ To test the model on a new sequence:
 python Test.py
 ```
 
-Plotting code from: <https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767>
+Code based on: <https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767>
 
