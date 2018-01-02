@@ -45,7 +45,10 @@ def plot_no_loss(predictions_series, batchX, batchY, n_units, batch_size):
         one_hot_output_series = np.array(predictions_series)[:, batch_series_idx, :]
         single_output_series = np.array([(1 if out[0] < 0.5 else 0) for out in one_hot_output_series])
        
-        plt.subplot(2, 3, batch_series_idx + 1)
+        if batch_size == 1:
+            plt.subplot(1, 1, 1)
+        else:
+            plt.subplot(2, 3, batch_series_idx + 1)
         plt.cla()
         plt.axis([0, n_units, 0, 2]) 
         left_offset = range(n_units)

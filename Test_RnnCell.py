@@ -55,8 +55,8 @@ if __name__ == "__main__":
     series_length = 100
     state_size = 4
     num_classes = 2
-    batch_size = 5
-    n_units = 15
+    batch_size = 1
+    n_units = 100
 
     d = Data(echo_step, series_length)
     t = Test(ckpt, d, state_size, num_classes, batch_size, n_units, series_length)
