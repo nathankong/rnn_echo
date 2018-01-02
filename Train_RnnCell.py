@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from Data import *
+from Util import plot_with_loss
 from Model_Rnn import *
 
 class Train:
@@ -68,28 +69,8 @@ class Train:
 
                     if batch % 100 == 0:
                         print("Epoch", i, "Step", batch, "Loss", _loss)
-                        plot(losses, _preds, x_batch, y_batch, self.n_units)
+                        plot_with_loss(losses, _preds, x_batch, y_batch, self.n_units)
                 saver.save(sess, "checkpoints/rnn_cell/model.ckpt", global_step=i)
-
-def plot(loss_list, predictions_series, batchX, batchY, n_units):
-    plt.subplot(2, 3, 1)
-    plt.cla()
-    plt.plot(loss_list)
-    
-    for batch_series_idx in range(5):
-        one_hot_output_series = np.array(predictions_series)[:, batch_series_idx, :]
-        single_output_series = np.array([(1 if out[0] < 0.5 else 0) for out in one_hot_output_series])
-    
-        plt.subplot(2, 3, batch_series_idx + 2)
-        plt.cla()
-        plt.axis([0, n_units, 0, 2])
-        left_offset = range(n_units)
-        plt.bar(left_offset, batchX[batch_series_idx, :], width=1, color="blue")
-        plt.bar(left_offset, batchY[batch_series_idx, :] * 0.5, width=1, color="red")
-        plt.bar(left_offset, single_output_series * 0.3, width=1, color="green")
-    
-    plt.draw()
-    plt.pause(0.0001)
 
 if __name__ == "__main__":
     echo_step = 2

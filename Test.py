@@ -59,23 +59,9 @@ class Test:
                                    feed_dict={self.x_batch:x_batch,
                                               self.y_batch:y_batch,
                                               self.init_state:curr_state})
-                plot(_preds, x_batch, y_batch, self.n_units, self.batch_size)
+                plot_no_loss(_preds, x_batch, y_batch, self.n_units, self.batch_size)
                 print "Batch: " + str(batch) + "; Loss: " + str(_loss)
 
-def plot(predictions_series, batchX, batchY, n_units, batch_size):
-    for batch_series_idx in range(batch_size):
-        one_hot_output_series = np.array(predictions_series)[:, batch_series_idx, :]
-        single_output_series = np.array([(1 if out[0] < 0.5 else 0) for out in one_hot_output_series])
-       
-        plt.subplot(2, 3, batch_series_idx + 1)
-        plt.cla()
-        plt.axis([0, n_units, 0, 2]) 
-        left_offset = range(n_units)
-        plt.bar(left_offset, batchX[batch_series_idx, :], width=1, color="blue")
-        plt.bar(left_offset, batchY[batch_series_idx, :] * 0.5, width=1, color="red")
-        plt.bar(left_offset, single_output_series * 0.3, width=1, color="green")
-       
-    plt.show()
 
 if __name__ == "__main__":
     ckpt = "checkpoints/vanilla/model.ckpt-4"
